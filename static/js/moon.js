@@ -1,5 +1,3 @@
-// === MoonGod Tracker - Космический финансовый менеджер ===
-
 const API_URL = window.location.origin + '/api/v1';
 let currentPage = 0;
 const pageSize = 10;
