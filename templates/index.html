@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoonTracker • Космический учет финансов</title>
+    <link rel="stylesheet" href="/static/css/moon.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Фоновые элементы -->
+    <div class="stars"></div>
+    <div class="twinkling"></div>
+    <div class="clouds"></div>
+
+    <div class="moon-container">
+        <!-- Хедер -->
+        <header class="moon-header">
+            <div class="logo">
+                <div class="moon-logo">
+                    <i class="fas fa-moon"></i>
+                    <span class="pulse"></span>
+                </div>
+                <h1>Moon<span>Tracker</span></h1>
+                <div class="status-indicator" id="status-indicator"></div>
+            </div>
+            <div class="header-stats">
+                <div class="stat-chip">
+                    <i class="fas fa-rocket"></i>
+                    <span>API: <span id="api-status">ONLINE</span></span>
+                </div>
+                <div class="stat-chip">
+                    <i class="fas fa-database"></i>
+                    <span>DB: <span id="db-status">CONNECTED</span></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Основная панель -->
+        <main class="moon-main">
+            <!-- Левая панель: Статистика -->
+            <section class="moon-panel stats-panel">
+                <div class="panel-header">
+                    <h2><i class="fas fa-chart-line"></i> КОСМИЧЕСКАЯ СТАТИСТИКА</h2>
+                    <div class="panel-actions">
+                        <button class="moon-btn small" onclick="loadStats()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card glow-green">
+                        <div class="stat-icon">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-label">ДОХОДЫ</div>
+                            <div class="stat-value" id="total-income">0 ₽</div>
+                            <div class="stat-change">+0%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card glow-red">
+                        <div class="stat-icon">
+                            <i class="fas fa-arrow-down"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-label">РАСХОДЫ</div>
+                            <div class="stat-value" id="total-expense">0 ₽</div>
+                            <div class="stat-change">-0%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card glow-blue">
+                        <div class="stat-icon">
+                            <i class="fas fa-balance-scale"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-label">БАЛАНС</div>
+                            <div class="stat-value" id="balance">0 ₽</div>
+                            <div class="stat-change">NET</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card glow-purple">
+                        <div class="stat-icon">
+                            <i class="fas fa-satellite"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-label">ТРАНЗАКЦИЙ</div>
+                            <div class="stat-value" id="transactions-count">0</div>
+                            <div class="stat-change">TOTAL</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Диаграмма -->
+                <div class="chart-container">
+                    <canvas id="moon-chart"></canvas>
+                </div>
+            </section>
+
+            <!-- Центральная панель: Добавление транзакции -->
+            <section class="moon-panel form-panel">
+                <div class="panel-header">
+                    <h2><i class="fas fa-plus-circle"></i> НОВАЯ ТРАНЗАКЦИЯ</h2>
+                </div>
+                
+                <form id="transaction-form" class="moon-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="moon-label">
+                                <i class="fas fa-compass"></i> ТИП
+                            </label>
+                            <div class="type-selector">
+                                <label class="type-option active" data-type="income">
+                                    <input type="radio" name="type" value="income" checked hidden>
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>ДОХОД</span>
+                                </label>
+                                <label class="type-option" data-type="expense">
+                                    <input type="radio" name="type" value="expense" hidden>
+                                    <i class="fas fa-arrow-down"></i>
+                                    <span>РАСХОД</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="moon-label">
+                                <i class="fas fa-coins"></i> СУММА
+                            </label>
+                            <div class="amount-input">
+                                <input type="number" 
+                                       id="amount" 
+                                       step="0.01" 
+                                       min="0" 
+                                       required 
+                                       placeholder="0.00">
+                                <span class="currency">₽</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="moon-label">
+                            <i class="fas fa-comment-alt"></i> ОПИСАНИЕ
+                        </label>
+                        <input type="text" 
+                               id="description" 
+                               class="moon-input"
+                               placeholder="Куда потратили или откуда получили...">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="moon-label">
+                            <i class="fas fa-tags"></i> КАТЕГОРИЯ
+                        </label>
+                        <select id="category_id" class="moon-select">
+                            <option value="">Без категории</option>
+                            <!-- Категории загрузятся динамически -->
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="moon-btn primary full-width">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>ОТПРАВИТЬ В КОСМОС</span>
+                    </button>
+                </form>
+                
+                <!-- Быстрые действия -->
+                <div class="quick-actions">
+                    <button class="quick-btn" data-amount="100">
+                        <i class="fas fa-coffee"></i>
+                        <span>Кофе</span>
+                    </button>
+                    <button class="quick-btn" data-amount="500">
+                        <i class="fas fa-utensils"></i>
+                        <span>Обед</span>
+                    </button>
+                    <button class="quick-btn" data-amount="1000">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span>Покупки</span>
+                    </button>
+                    <button class="quick-btn" data-amount="5000">
+                        <i class="fasfa-gift"></i>
+                        <span>Подарок</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Правая панель: История транзакций -->
+            <section class="moon-panel history-panel">
+                <div class="panel-header">
+                    <h2><i class="fas fa-history"></i> ИСТОРИЯ ПОЛЕТОВ</h2>
+                    <div class="panel-actions">
+                        <button class="moon-btn small" onclick="loadTransactions()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <select id="filter-type" class="moon-select small">
+                            <option value="">Все</option>
+                            <option value="income">Доходы</option>
+                            <option value="expense">Расходы</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="transactions-list" id="transactions-list">
+                    <div class="empty-state">
+                        <i class="fas fa-rocket"></i>
+                        <p>Пока нет транзакций</p>
+                        <small>Добавьте первую запись</small>
+                    </div>
+                </div>
+                
+                <div class="pagination">
+                    <button class="moon-btn secondary" onclick="loadMore()" id="load-more">
+                        <i class="fas fa-chevron-down"></i>
+                        <span>ЗАГРУЗИТЬ БОЛЬШЕ</span>
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Футер -->
+        <footer class="moon-footer">
+            <div class="footer-info">
+                <div class="api-link">
+                    <i class="fas fa-code"></i>
+                    <a href="/api/docs" target="_blank">API Documentation</a>
+                </div>
+                <div class="system-info">
+                    <span id="time">--:--:--</span>
+                    <span>•</span>
+                    <span id="date">-- --- ----</span>
+                </div>
+            </div>
+            <div class="footer-credits">
+                <span>Powered by MoonGod Design</span>
+                <span class="version">v1.0.0</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Модалка удаления -->
+    <div class="modal-overlay" id="delete-modal">
+        <div class="moon-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> ПОДТВЕРЖДЕНИЕ</h3>
+                <button class="close-modal" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Вы уверены, что хотите удалить эту транзакцию?</p>
+                <div class="transaction-preview" id="transaction-preview"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="moon-btn secondary" onclick="closeModal()">ОТМЕНА</button>
+                <button class="moon-btn danger" id="confirm-delete">УДАЛИТЬ</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/js/moon.js"></script>
+</body>
+</html>
