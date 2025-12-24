@@ -1,104 +1,86 @@
-# app/main.py
-from fastapi import FastAPI, Request, Depends
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
+from typing import List
+import os
 
+from app import models, schemas
 from app.database import engine, get_db
-from app import models
-from app.routers import auth, transactions, categories, budgets
-from app.config import settings
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Управление жизненным циклом приложения"""
-    print("Starting MoneyTracker API...")
-    
-    # Создаем таблицы (в продакшене используем миграции)
-    if settings.DEBUG:
-        models.Base.metadata.create_all(bind=engine)
-    
-    print("Database tables created")
-    yield
-    print("Shutting down MoneyTracker API...")
+# Создаем таблицы
+models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(
-    title="MoneyTracker API",
-    description="API для отслеживания личных финансов",
-    version="2.0.0",
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json",
-    lifespan=lifespan
-)
+app = FastAPI(title="MoneyTracker API", version="1.0")
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"] if settings.DEBUG else [settings.FRONTEND_URL],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Подключаем статические файлы
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Подключаем статические файлы и шаблоны
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-templates = Jinja2Templates(directory="app/templates")
-
-# Регистрируем маршруты
-app.include_router(auth.router)
-app.include_router(transactions.router)
-app.include_router(categories.router)
-app.include_router(budgets.router)
-
-@app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    """Главная страница"""
-    return templates.TemplateResponse(
-        "index.html",
-        {"request": request, "title": "MoneyTracker - Управление финансами"}
-    )
-
-@app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(request: Request):
-    """Страница дашборда"""
-    return templates.TemplateResponse(
-        "dashboard.html",
-        {"request": request, "title": "Дашборд"}
-    )
-
-@app.get("/health")
-async def health_check(db: Session = Depends(get_db)):
-    """Проверка здоровья приложения"""
-    try:
-        # Проверяем подключение к БД
-        db.execute("SELECT 1")
-        db_status = "connected"
-    except Exception as e:
-        db_status = f"error: {str(e)}"
-    
+# Простая домашняя страница
+@app.get("/")
+def home():
     return {
-        "status": "healthy",
-        "service": "money-tracker-api",
-        "version": "2.0.0",
-        "database": db_status
-    }
-
-@app.get("/api/v1/status")
-async def get_status():
-    """Информация о статусе API"""
-    return {
-        "service": "MoneyTracker API",
-        "version": "2.0.0",
-        "status": "operational",
-        "documentation": "/api/docs",
+        "message": "Добро пожаловать в MoneyTracker API!",
         "endpoints": {
-            "auth": "/api/v1/auth",
-            "transactions": "/api/v1/transactions",
-            "categories": "/api/v1/categories",
-            "budgets": "/api/v1/budgets"
-        }
+            "GET /static/": "Веб-интерфейс",
+            "GET /transactions": "Все транзакции",
+            "POST /transactions": "Создать транзакцию",
+            "GET /stats": "Статистика"
+        },
+        "docs": "/docs"
     }
+
+# Простые CRUD эндпоинты для транзакций
+@app.post("/transactions", response_model=schemas.TransactionResponse)
+def create_transaction(
+    transaction: schemas.TransactionCreate, 
+    db: Session = Depends(get_db)
+):
+    db_transaction = models.Transaction(**transaction.dict())
+    db.add(db_transaction)
+    db.commit()
+    db.refresh(db_transaction)
+    return db_transaction
+
+@app.get("/transactions", response_model=List[schemas.TransactionResponse])
+def get_transactions(db: Session = Depends(get_db)):
+    return db.query(models.Transaction).all()
+
+@app.get("/transactions/{id}", response_model=schemas.TransactionResponse)
+def get_transaction(id: int, db: Session = Depends(get_db)):
+    transaction = db.query(models.Transaction).filter(models.Transaction.id == id).first()
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Транзакция не найдена")
+    return transaction
+
+@app.delete("/transactions/{id}")
+def delete_transaction(id: int, db: Session = Depends(get_db)):
+    transaction = db.query(models.Transaction).filter(models.Transaction.id == id).first()
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Транзакция не найдена")
+    db.delete(transaction)
+    db.commit()
+    return {"message": "Транзакция удалена"}
+
+# Статистика (простая)
+@app.get("/stats")
+def get_stats(db: Session = Depends(get_db)):
+    from sqlalchemy import func
+    
+    total_income = db.query(func.sum(models.Transaction.amount)).filter(
+        models.Transaction.type == "income"
+    ).scalar() or 0
+    
+    total_expense = db.query(func.sum(models.Transaction.amount)).filter(
+        models.Transaction.type == "expense"
+    ).scalar() or 0
+    
+    return {
+        "total_income": float(total_income),
+        "total_expense": float(total_expense),
+        "balance": float(total_income - total_expense)
+    }
+
+# Проверка здоровья
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
