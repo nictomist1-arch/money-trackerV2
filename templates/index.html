@@ -75,7 +75,7 @@
                         </div>
                     </div>
                     
-                    <div class="stat-card glow-blue">
+                    <div class="stat-card glow-blue" id="balance-card">
                         <div class="stat-icon">
                             <i class="fas fa-balance-scale"></i>
                         </div>
@@ -101,6 +101,15 @@
                 <!-- Диаграмма -->
                 <div class="chart-container">
                     <canvas id="moon-chart"></canvas>
+                </div>
+                
+                <!-- Кнопка заполнения категорий -->
+                <div class="category-actions" style="margin-top: 20px; text-align: center;">
+                    <button class="moon-btn secondary small" onclick="seedCategories()" 
+                            style="font-size: 12px; padding: 8px 15px;">
+                        <i class="fas fa-seedling"></i>
+                        <span>Заполнить категории</span>
+                    </button>
                 </div>
             </section>
 
@@ -161,7 +170,7 @@
                             <i class="fas fa-tags"></i> КАТЕГОРИЯ
                         </label>
                         <select id="category_id" class="moon-select">
-                            <option value="">Без категории</option>
+                            <option value="">Выберите категорию</option>
                             <!-- Категории загрузятся динамически -->
                         </select>
                     </div>
@@ -174,20 +183,20 @@
                 
                 <!-- Быстрые действия -->
                 <div class="quick-actions">
-                    <button class="quick-btn" data-amount="100">
+                    <button class="quick-btn" data-amount="100" data-description="Кофе">
                         <i class="fas fa-coffee"></i>
                         <span>Кофе</span>
                     </button>
-                    <button class="quick-btn" data-amount="500">
+                    <button class="quick-btn" data-amount="500" data-description="Обед">
                         <i class="fas fa-utensils"></i>
                         <span>Обед</span>
                     </button>
-                    <button class="quick-btn" data-amount="1000">
+                    <button class="quick-btn" data-amount="1000" data-description="Покупки">
                         <i class="fas fa-shopping-cart"></i>
                         <span>Покупки</span>
                     </button>
-                    <button class="quick-btn" data-amount="5000">
-                        <i class="fasfa-gift"></i>
+                    <button class="quick-btn" data-amount="5000" data-description="Подарок">
+                        <i class="fas fa-gift"></i>
                         <span>Подарок</span>
                     </button>
                 </div>
@@ -206,14 +215,16 @@
                             <option value="income">Доходы</option>
                             <option value="expense">Расходы</option>
                         </select>
+                        <select id="filter-category" class="moon-select small">
+                            <option value="">Все категории</option>
+                        </select>
                     </div>
                 </div>
                 
                 <div class="transactions-list" id="transactions-list">
                     <div class="empty-state">
                         <i class="fas fa-rocket"></i>
-                        <p>Пока нет транзакций</p>
-                        <small>Добавьте первую запись</small>
+                        <p>Загрузка транзакций...</p>
                     </div>
                 </div>
                 

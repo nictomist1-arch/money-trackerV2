@@ -7,6 +7,25 @@ let hasMore = true;
 let chartInstance = null;
 let transactionToDelete = null;
 
+// === ПРЕДУСТАНОВЛЕННЫЕ КАТЕГОРИИ ===
+const defaultCategories = [
+    // Расходы
+    { id: 1, name: 'Еда', type: 'expense', icon: '🍕', color: '#ef4444' },
+    { id: 2, name: 'Транспорт', type: 'expense', icon: '🚗', color: '#f59e0b' },
+    { id: 3, name: 'Развлечения', type: 'expense', icon: '🎬', color: '#8b5cf6' },
+    { id: 4, name: 'Подарки', type: 'expense', icon: '🎁', color: '#ec4899' },
+    { id: 5, name: 'Здоровье', type: 'expense', icon: '💊', color: '#10b981' },
+    { id: 6, name: 'Образование', type: 'expense', icon: '📚', color: '#3b82f6' },
+    { id: 7, name: 'Счета', type: 'expense', icon: '📄', color: '#6b7280' },
+    { id: 8, name: 'Покупки', type: 'expense', icon: '🛍️', color: '#8b5cf6' },
+    
+    // Доходы
+    { id: 9, name: 'Зарплата', type: 'income', icon: '💰', color: '#10b981' },
+    { id: 10, name: 'Фриланс', type: 'income', icon: '💻', color: '#3b82f6' },
+    { id: 11, name: 'Инвестиции', type: 'income', icon: '📈', color: '#8b5cf6' },
+    { id: 12, name: 'Подарки', type: 'income', icon: '🎁', color: '#ec4899' }
+];
+
 // === ИНИЦИАЛИЗАЦИЯ ===
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
@@ -42,32 +61,69 @@ function initUI() {
             this.classList.add('active');
             const type = this.dataset.type;
             document.querySelector(`input[name="type"][value="${type}"]`).checked = true;
+            
+            // Автоматически обновляем категории
+            updateCategorySelection(type);
         });
     });
     
-    // Быстрые действия
-    document.querySelectorAll('.quick-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const amount = this.dataset.amount;
-            document.getElementById('amount').value = amount;
-            // Автоматически определяем тип по названию кнопки
-            const text = this.querySelector('span').textContent.toLowerCase();
-            if (['кофе', 'обед', 'покупки', 'подарок'].includes(text)) {
-                document.querySelector('.type-option[data-type="expense"]').click();
-            }
-            document.getElementById('description').value = 
-                this.querySelector('span').textContent;
-        });
-    });
-    
-    // Фильтры
-    document.getElementById('filter-type').addEventListener('change', () => {
-        loadTransactions(true);
-    });
+    // Инициализация быстрых действий
+    setupQuickActions();
     
     // Обновление времени
     updateTime();
     setInterval(updateTime, 1000);
+}
+
+// === БЫСТРЫЕ ДЕЙСТВИЯ ===
+function setupQuickActions() {
+    document.querySelectorAll('.quick-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const amount = this.dataset.amount;
+            const description = this.dataset.description || this.querySelector('span').textContent;
+            
+            // Устанавливаем значения
+            document.getElementById('amount').value = amount;
+            document.getElementById('description').value = description;
+            
+            // Автоматически определяем тип по иконке
+            const icon = this.querySelector('i').className;
+            if (['fa-coffee', 'fa-utensils', 'fa-shopping-cart', 'fa-gift'].some(i => icon.includes(i))) {
+                document.querySelector('.type-option[data-type="expense"]').click();
+                
+                // Автоматически выбираем соответствующую категорию
+                switch(description) {
+                    case 'Кофе':
+                        setCategoryByText('Еда');
+                        break;
+                    case 'Обед':
+                        setCategoryByText('Еда');
+                        break;
+                    case 'Покупки':
+                        setCategoryByText('Покупки');
+                        break;
+                    case 'Подарок':
+                        setCategoryByText('Подарки');
+                        break;
+                }
+            }
+            
+            // Фокус на поле суммы
+            document.getElementById('amount').focus();
+        });
+    });
+}
+
+function setCategoryByText(text) {
+    const categorySelect = document.getElementById('category_id');
+    const options = categorySelect.options;
+    
+    for (let i = 0; i < options.length; i++) {
+        if (options[i].textContent.includes(text)) {
+            categorySelect.selectedIndex = i;
+            break;
+        }
+    }
 }
 
 // === АНИМАЦИИ ===
@@ -138,23 +194,38 @@ async function loadStats() {
             `${formatCurrency(stats.total_income)}`;
         document.getElementById('total-expense').textContent = 
             `${formatCurrency(stats.total_expense)}`;
-        document.getElementById('balance').textContent = 
-            `${formatCurrency(stats.balance)}`;
+        
+        const balanceElement = document.getElementById('balance');
+        const balanceCard = document.getElementById('balance-card');
+        const balanceIcon = balanceCard.querySelector('.stat-icon i');
+        
+        // Обновляем баланс
+        balanceElement.textContent = `${formatCurrency(stats.balance)}`;
+        
+        // Обновляем цвет и стиль баланса
+        if (stats.balance > 0) {
+            balanceElement.className = 'stat-value balance-positive';
+            balanceCard.className = 'stat-card glow-green';
+            balanceIcon.className = 'fas fa-arrow-up';
+            balanceCard.querySelector('.stat-change').textContent = 'PROFIT';
+        } else if (stats.balance < 0) {
+            balanceElement.className = 'stat-value balance-negative';
+            balanceCard.className = 'stat-card glow-red';
+            balanceIcon.className = 'fas fa-arrow-down';
+            balanceCard.querySelector('.stat-change').textContent = 'LOSS';
+        } else {
+            balanceElement.className = 'stat-value balance-neutral';
+            balanceCard.className = 'stat-card glow-blue';
+            balanceIcon.className = 'fas fa-balance-scale';
+            balanceCard.querySelector('.stat-change').textContent = 'NET';
+        }
+        
+        // Обновление счетчика транзакций
         document.getElementById('transactions-count').textContent = 
             stats.transactions.total_count;
         
-        // Обновление цвета баланса
-        const balanceElement = document.getElementById('balance');
-        if (stats.balance >= 0) {
-            balanceElement.parentElement.classList.remove('glow-red');
-            balanceElement.parentElement.classList.add('glow-green');
-        } else {
-            balanceElement.parentElement.classList.remove('glow-green');
-            balanceElement.parentElement.classList.add('glow-red');
-        }
-        
         // Обновление диаграммы
-        updateChart(stats.total_income, stats.total_expense);
+        updateAdvancedChart();
         
         // Анимация обновления
         animateValueUpdate();
@@ -183,17 +254,138 @@ function animateValueUpdate() {
 }
 
 // === ДИАГРАММА ===
-function updateChart(income, expense) {
+async function updateAdvancedChart() {
+    try {
+        const response = await fetch(`${API_URL}/stats/detailed`);
+        const stats = await response.json();
+        
+        const ctx = document.getElementById('moon-chart').getContext('2d');
+        
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+        
+        // Создаем данные для диаграммы по категориям
+        const categories = stats.category_stats || [];
+        
+        if (categories.length === 0) {
+            // Если нет данных по категориям, используем простую диаграмму
+            updateSimpleChart(stats.totals.income, stats.totals.expense);
+            return;
+        }
+        
+        const categoryLabels = categories.map(cat => cat.category);
+        const incomeData = categories.map(cat => cat.type === 'income' ? cat.total : 0);
+        const expenseData = categories.map(cat => cat.type === 'expense' ? cat.total : 0);
+        
+        // Цвета для категорий
+        const categoryColors = [
+            '#ef4444', '#f59e0b', '#10b981', '#3b82f6',
+            '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'
+        ];
+        
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: categoryLabels,
+                datasets: [
+                    {
+                        label: 'Доходы',
+                        data: incomeData,
+                        backgroundColor: categoryColors,
+                        borderColor: categoryColors.map(c => c.replace('0.8', '1')),
+                        borderWidth: 1,
+                        borderRadius: 5
+                    },
+                    {
+                        label: 'Расходы',
+                        data: expenseData,
+                        backgroundColor: categoryColors.map(c => 
+                            c.replace(')', ', 0.5)').replace('rgb', 'rgba')
+                        ),
+                        borderColor: categoryColors,
+                        borderWidth: 1,
+                        borderRadius: 5
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: '#e0e0ff',
+                            font: {
+                                family: 'Space Grotesk',
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const label = context.dataset.label;
+                                return `${label}: ${formatCurrency(value)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: '#a5b4fc',
+                            font: {
+                                family: 'Space Grotesk',
+                                size: 11
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(255,255,255,0.1)'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: '#a5b4fc',
+                            font: {
+                                family: 'Space Grotesk',
+                                size: 11
+                            },
+                            callback: function(value) {
+                                return formatCurrency(value);
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(255,255,255,0.1)'
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1000,
+                    easing: 'easeInOutQuart'
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error loading advanced chart:', error);
+        // Используем простую диаграмму как запасной вариант
+        const response = await fetch(`${API_URL}/stats`);
+        const simpleStats = await response.json();
+        updateSimpleChart(simpleStats.total_income, simpleStats.total_expense);
+    }
+}
+
+function updateSimpleChart(income, expense) {
     const ctx = document.getElementById('moon-chart').getContext('2d');
     
-    // Удаляем старую диаграмму
     if (chartInstance) {
         chartInstance.destroy();
     }
     
     const total = income + expense;
-    const incomePercent = total > 0 ? (income / total * 100) : 0;
-    const expensePercent = total > 0 ? (expense / total * 100) : 0;
     
     chartInstance = new Chart(ctx, {
         type: 'doughnut',
@@ -227,7 +419,7 @@ function updateChart(income, expense) {
                     callbacks: {
                         label: function(context) {
                             const value = context.raw;
-                            const percent = context.raw / total * 100;
+                            const percent = total > 0 ? (value / total * 100) : 0;
                             return `${context.label}: ${formatCurrency(value)} (${percent.toFixed(1)}%)`;
                         }
                     }
@@ -246,25 +438,119 @@ function updateChart(income, expense) {
 async function loadCategories() {
     try {
         const response = await fetch(`${API_URL}/categories`);
+        let categories = defaultCategories;
+        
         if (response.ok) {
-            const categories = await response.json();
-            const select = document.getElementById('category_id');
-            
-            // Очищаем, кроме первого варианта
-            while (select.options.length > 1) {
-                select.remove(1);
+            const serverCategories = await response.json();
+            // Если есть категории с сервера, используем их
+            if (serverCategories && serverCategories.length > 0) {
+                categories = serverCategories;
             }
-            
-            // Добавляем категории
-            categories.forEach(category => {
-                const option = document.createElement('option');
-                option.value = category.id;
-                option.textContent = `${category.name} (${category.type})`;
-                select.appendChild(option);
-            });
         }
+        
+        renderCategorySelects(categories);
+        
     } catch (error) {
         console.error('Error loading categories:', error);
+        // Используем локальные категории при ошибке
+        renderCategorySelects(defaultCategories);
+    }
+}
+
+function renderCategorySelects(categories) {
+    const categorySelect = document.getElementById('category_id');
+    const filterCategory = document.getElementById('filter-category');
+    
+    // Очищаем селекты
+    categorySelect.innerHTML = '<option value="">Выберите категорию</option>';
+    if (filterCategory) {
+        filterCategory.innerHTML = '<option value="">Все категории</option>';
+    }
+    
+    // Группируем по типам
+    const incomeCategories = categories.filter(c => c.type === 'income');
+    const expenseCategories = categories.filter(c => c.type === 'expense');
+    
+    // Добавляем категории доходов
+    if (incomeCategories.length > 0) {
+        const incomeGroup = document.createElement('optgroup');
+        incomeGroup.label = '📈 Доходы';
+        incomeCategories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.id;
+            option.textContent = `${category.icon || '📊'} ${category.name}`;
+            option.dataset.type = category.type;
+            if (category.color) {
+                option.style.color = category.color;
+            }
+            incomeGroup.appendChild(option);
+        });
+        categorySelect.appendChild(incomeGroup);
+    }
+    
+    // Добавляем категории расходов
+    if (expenseCategories.length > 0) {
+        const expenseGroup = document.createElement('optgroup');
+        expenseGroup.label = '📉 Расходы';
+        expenseCategories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.id;
+            option.textContent = `${category.icon || '📊'} ${category.name}`;
+            option.dataset.type = category.type;
+            if (category.color) {
+                option.style.color = category.color;
+            }
+            expenseGroup.appendChild(option);
+        });
+        categorySelect.appendChild(expenseGroup);
+    }
+    
+    // Для фильтра категорий
+    if (filterCategory) {
+        categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.id;
+            option.textContent = `${category.icon || '📊'} ${category.name}`;
+            filterCategory.appendChild(option);
+        });
+    }
+}
+
+function updateCategorySelection(type) {
+    const categorySelect = document.getElementById('category_id');
+    const options = categorySelect.querySelectorAll('option');
+    
+    // Сбрасываем выбор
+    categorySelect.value = '';
+    
+    // Ищем первую категорию соответствующего типа
+    options.forEach(option => {
+        if (option.dataset.type === type && !categorySelect.value) {
+            categorySelect.value = option.value;
+        }
+    });
+}
+
+// === ЗАПОЛНЕНИЕ КАТЕГОРИЙ ===
+async function seedCategories() {
+    if (!confirm('Заполнить базу данных предустановленными категориями?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/categories/seed`, {
+            method: 'POST'
+        });
+        
+        if (response.ok) {
+            showNotification('✅ Категории успешно добавлены!', 'success');
+            loadCategories(); // Перезагружаем список
+        } else {
+            showNotification('❌ Ошибка при добавлении категорий', 'error');
+        }
+    } catch (error) {
+        console.error('Error seeding categories:', error);
+        showNotification('❌ Ошибка соединения', 'error');
     }
 }
 
@@ -280,6 +566,7 @@ async function loadTransactions(reset = true) {
     if (!hasMore) return;
     
     const filterType = document.getElementById('filter-type').value;
+    const filterCategory = document.getElementById('filter-category').value;
     
     let endpoint = `${API_URL}/transactions?skip=${currentPage * pageSize}&limit=${pageSize}`;
     if (filterType) {
@@ -340,13 +627,14 @@ function createTransactionElement(transaction) {
     const date = new Date(transaction.created_at);
     const formattedDate = date.toLocaleDateString('ru-RU', {
         day: '2-digit',
-        month: 'short'
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit'
     });
     
     const isIncome = transaction.type === 'income';
     const amountClass = isIncome ? 'transaction-income' : 'transaction-expense';
     const amountPrefix = isIncome ? '+' : '-';
-    const icon = isIncome ? 'fas fa-arrow-up' : 'fas fa-arrow-down';
     
     div.innerHTML = `
         <div class="transaction-info">
@@ -592,6 +880,15 @@ function setupEventListeners() {
     
     // Периодическая проверка статуса
     setInterval(checkStatus, 30000);
+    
+    // Обновление категорий при смене фильтров
+    document.getElementById('filter-type').addEventListener('change', () => {
+        loadTransactions(true);
+    });
+    
+    document.getElementById('filter-category').addEventListener('change', () => {
+        loadTransactions(true);
+    });
 }
 
 // === ГЛОБАЛЬНЫЕ ФУНКЦИИ ===
@@ -600,5 +897,6 @@ window.loadTransactions = loadTransactions;
 window.loadMore = loadMore;
 window.showDeleteModal = showDeleteModal;
 window.closeModal = closeModal;
+window.seedCategories = seedCategories;
 
 console.log('🌙 MoonGod Tracker готов к работе!');

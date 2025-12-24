@@ -21,6 +21,17 @@
     50% { opacity: 1; }
 }
 
+@keyframes gradient-border {
+    0%, 100% {
+        border-color: #3b82f6;
+        box-shadow: 0 0 15px #3b82f6;
+    }
+    50% {
+        border-color: #8b5cf6;
+        box-shadow: 0 0 25px #8b5cf6;
+    }
+}
+
 /* Сброс стилей */
 * {
     margin: 0;
@@ -223,18 +234,51 @@ body {
     align-items: center;
     gap: 15px;
     transition: all 0.3s ease;
-    border: 1px solid transparent;
+    border: 2px solid transparent;
 }
 
 .stat-card:hover {
     transform: translateY(-5px);
-    border-color: rgba(255, 255, 255, 0.2);
 }
 
-.glow-green { animation: glow 4s infinite; color: #10b981; }
-.glow-red { animation: glow 4s infinite 1s; color: #ef4444; }
-.glow-blue { animation: glow 4s infinite 2s; color: #3b82f6; }
-.glow-purple { animation: glow 4s infinite 3s; color: #8b5cf6; }
+.glow-green {
+    animation: glow 4s infinite;
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.glow-red {
+    animation: glow 4s infinite 1s;
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.glow-blue {
+    border: 2px solid transparent;
+    background: linear-gradient(rgba(16, 18, 27, 0.8), rgba(16, 18, 27, 0.8)) padding-box,
+                linear-gradient(135deg, #3b82f6, #8b5cf6, #3b82f6) border-box;
+    animation: gradient-border 4s ease infinite;
+    color: #3b82f6;
+}
+
+.glow-purple {
+    animation: glow 4s infinite 3s;
+    color: #8b5cf6;
+    border-color: rgba(139, 92, 246, 0.3) !important;
+}
+
+/* Цвета баланса в зависимости от значения */
+.balance-positive {
+    color: #10b981 !important;
+}
+
+.balance-negative {
+    color: #ef4444 !important;
+}
+
+.balance-neutral {
+    color: #3b82f6 !important;
+}
 
 .stat-icon {
     width: 50px;
@@ -265,6 +309,7 @@ body {
     font-size: 22px;
     font-weight: 700;
     margin-bottom: 5px;
+    text-shadow: 0 0 10px currentColor;
 }
 
 .stat-change {
@@ -276,6 +321,7 @@ body {
 .chart-container {
     flex: 1;
     min-height: 200px;
+    position: relative;
 }
 
 /* Форма */
@@ -526,10 +572,12 @@ body {
 
 .transaction-income {
     color: #10b981;
+    text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
 }
 
 .transaction-expense {
     color: #ef4444;
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
 }
 
 .delete-btn {
@@ -756,5 +804,10 @@ body {
     
     .type-selector {
         flex-direction: column;
+    }
+    
+    .panel-actions {
+        flex-wrap: wrap;
+        justify-content: center;
     }
 }
