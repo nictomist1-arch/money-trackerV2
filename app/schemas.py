@@ -1,25 +1,27 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 
-# Category
+# Категория
 class CategoryBase(BaseModel):
     name: str
-    type: str
+    type: str  # 'income' или 'expense'
 
 class CategoryCreate(CategoryBase):
     pass
 
 class CategoryResponse(CategoryBase):
     id: int
+    created_at: datetime
     
     class Config:
         from_attributes = True
 
-# Transaction
+# Транзакция
 class TransactionBase(BaseModel):
     amount: float
     description: Optional[str] = None
-    type: str
+    type: str  # 'income' или 'expense'
     category_id: Optional[int] = None
 
 class TransactionCreate(TransactionBase):
@@ -27,6 +29,7 @@ class TransactionCreate(TransactionBase):
 
 class TransactionResponse(TransactionBase):
     id: int
+    created_at: datetime
     
     class Config:
         from_attributes = True
